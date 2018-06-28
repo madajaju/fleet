@@ -1,0 +1,18 @@
+{
+  "generators": {
+    "modules": {
+      "bouquet": "/Users/dwpulsip/work/bouquet/bouquet",
+      "bouquet-Actor": "/Users/dwpulsip/work/bouquet/bouquet-Actor",
+      "bouquet-UseCase": "/Users/dwpulsip/work/bouquet/bouquet-UseCase",
+      "bouquet-SubSystem": "/Users/dwpulsip/work/bouquet/bouquet-SubSystem",
+      "bouquet-Scenario": "/Users/dwpulsip/work/bouquet/bouquet-Scenario",
+      "bouquet-uservice": "/Users/dwpulsip/work/bouquet/sails-generate-bouquet-uservice",
+      "bouquet-Action": "/Users/dwpulsip/work/bouquet/sails-generate-bouquet-action"
+    }
+
+  },
+  "_generatedWith": {
+    "sails": "1.0.0-46",
+    "sails-generate": "1.15.5"
+    }
+}

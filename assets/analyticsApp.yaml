@@ -1,0 +1,33 @@
+application:
+  name: analytics
+  resources:
+    network:
+      cccA: 25
+    storage:
+      rawStorageA: 100000
+      secondaryStorageA: 5000
+  services:
+    ingestionA:
+      type: 'service'
+      replicas: 2
+      network: cccA
+      links:
+        - annotationA
+    annotationA:
+      type: 'service'
+      replicas: 5
+      network: cccA
+      links:
+        - analyticsA
+      storage: rawStorageA
+    analyticsA:
+      type: 'service'
+      replicas: 10
+      network: cccA
+      links:
+        - apiGateway
+      storage: secondaryStorageA
+    apiGateway:
+      type: 'service'
+      replicas: 2
+      storage: secondaryStorageA

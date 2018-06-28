@@ -1,0 +1,49 @@
+hardware:
+  host1:
+    type: compute
+    capacity: 28
+  host2:
+    type: compute
+    capacity: 28
+  host3:
+    type: compute
+    capacity: 28
+  host4:
+    type: compute
+    capacity: 28
+  host5:
+    type: compute
+    capacity: 28
+  host6:
+    type: compute
+    capacity: 28
+  host7:
+    type: compute
+    capacity: 28
+  host8:
+    type: compute
+    capacity: 28
+  host9:
+    type: compute
+    capacity: 28
+  host10:
+    type: compute
+    capacity: 28
+  drive1:
+    type: storage
+    capacity: 100000
+  drive2:
+    type: storage
+    capacity: 100000
+  drive3:
+    type: storage
+    capacity: 100000
+  network1:
+    type: network
+    capacity: 256
+  network2:
+    type: network
+    capacity: 256
+  network3:
+    type: network
+    capacity: 256

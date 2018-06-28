@@ -1,0 +1,11 @@
+@startuml
+
+interface external
+
+package "monitor" #dddddd {
+    component service
+    interface internal
+}
+external - service
+internal - service
+@enduml

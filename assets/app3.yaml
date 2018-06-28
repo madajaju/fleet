@@ -1,0 +1,24 @@
+application:
+  name: externalApp
+  resources:
+    network:
+      external: 40
+    storage:
+      secondaryStorage: 5000
+  services:
+    notification:
+      type: 'service'
+      replicas: 1
+      network: external
+    newAnalytics:
+      type: 'service'
+      replicas: 5
+      network: external
+      links:
+        - deepLearning
+      storage: secondaryStorage
+    apiGateway:
+      type: 'service'
+      replicas: 10
+      network: external
+      storage: secondaryStorage

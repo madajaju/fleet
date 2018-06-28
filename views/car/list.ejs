@@ -1,0 +1,66 @@
+<head>
+  <title>Cars</title>
+
+  <style>
+    body {
+      color: #d3d3d3;
+      font: 12pt arial;
+      background-color: #222222;
+    }
+
+    #mynetwork {
+      width: 800px;
+      height: 800px;
+      border: 1px solid #444444;
+      background-color: #222222;
+    }
+  </style>
+  <script type="text/javascript" src="/js/vis.js"></script>
+  <script type="text/javascript" src="/dependencies/sails.io.js"></script>
+</head>
+
+<body >
+<div id="mynetwork">
+  <div class="vis-network" tabindex="900"
+       style="position: relative; overflow: hidden; touch-action: pan-y; user-select: none; -webkit-user-drag: none; -webkit-tap-highlight-color: rgba(0, 0, 0, 0); width: 100%; height: 100%;">
+    <canvas width="1000" height="1000"
+            style="position: relative; touch-action: none; user-select: none; -webkit-user-drag: none; -webkit-tap-highlight-color: rgba(0, 0, 0, 0); width: 100%; height: 100%;"></canvas>
+  </div>
+</div>
+
+<script type="text/javascript">
+  let carArray = [
+    {x:100, y:100, group:1},
+    {x:400, y:100, group:1},
+    {x:400, y:32, group:1}
+  ];
+  let cars = new vis.DataSet(carArray);
+  // create a network
+  let container = document.getElementById('mynetwork');
+  var options = {
+    sort: false,
+    sampling:false,
+    autoResize: false,
+    max: 1000,
+    min: 0,
+    style:'points'
+  };
+  let network = new vis.Graph2d(container, cars, options);
+
+  io.socket.get('/car/list?mode=json', function (body, response) {
+    for (let i = 0; i < body.cars.length; i++) {
+      let car = body.cars[i];
+      let item = {id:car.id, x: Math.round(car.data.latitude * 400), y: Math.round(car.data.longitude * 400), group: 1};
+      cars.update(item);
+    }
+  });
+  io.socket.on('car', function (car) {
+    console.log(car);
+    let item = {id:car.id, x: Math.round(car.data.latitude * 400), y: Math.round(car.data.longitude * 400), group: 1};
+    cars.update(item);
+    console.log(item);
+  });
+</script>
+
+</body></html>
+

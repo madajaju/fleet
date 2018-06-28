@@ -1,0 +1,13 @@
+{
+  "main": "index.js",
+  "scripts": {
+    "start": "micro",
+    "build": "docker build . -t ${CAADE_REGISTRY}/fleet/monitor",
+    "deploy": "docker push ${CAADE_REGISTRY}/fleet/monitor",
+    "publish": "docker push ${CAADE_REGISTRY}/fleet/monitor"
+  },
+  "dependencies": {
+    "micro": "latest",
+    "node-fetch": "latest"
+  }
+}

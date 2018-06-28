@@ -1,0 +1,40 @@
+application:
+  name: deepLearning
+  resources:
+    network:
+      cccDL: 250
+    storage:
+      rawStorageDL: 10000
+      secondaryStorageDL: 5000
+  services:
+    ingestionDL:
+      type: 'service'
+      replicas: 2
+      network: cccDL
+      links:
+        - annotationDL
+    annotationDL:
+      type: 'service'
+      replicas: 2
+      network: cccDL
+      links:
+        - analyticsDL
+      storage: rawStorageDL
+    analyticsDL:
+      type: 'service'
+      replicas: 5
+      network: cccDL
+      links:
+        - deepLearningDL
+      storage: secondaryStorageDL
+    deepLearningDL:
+      type: 'service'
+      replicas: 20
+      network: cccDL
+      links:
+        - apiGatewayDL
+      storage: secondaryStorageDL
+    apiGatewayDL:
+      type: 'service'
+      replicas: 5
+      storage: secondaryStorageDL

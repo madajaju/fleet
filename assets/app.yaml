@@ -1,0 +1,32 @@
+application:
+  name: alert
+  resources:
+    network:
+      myNetwork: 150
+    storage:
+      myStorage: 1000
+      externalStorage: 5000
+  services:
+    ingestion:
+      type: 'service'
+      replicas: 8
+      storage: myStorage
+      network: myNetwork
+      links:
+        - annotation
+        - streaming
+    annotation:
+      type: 'service'
+      replicas: 8
+      network: myNetwork
+    streaming:
+      type: 'service'
+      replicas: 8
+      network: myNetwork
+      links:
+        - notificationGateway
+    notificationGateway:
+      type: 'service'
+      replicas: 4
+      network: myNetwork
+      storage: externalStorage

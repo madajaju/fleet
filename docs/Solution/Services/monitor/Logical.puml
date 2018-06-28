@@ -1,0 +1,13 @@
+@startuml
+
+package "monitor" {
+    interface "monitor" {
+
+    }
+    CLI ()-- "monitor" : 5000
+    REST ()-- "monitor" : 3000
+    Web ()-- "monitor" : 80
+}
+
+
+@enduml

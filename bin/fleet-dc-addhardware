@@ -1,0 +1,37 @@
+#!/usr/bin/env node
+
+var fs = require('fs');
+var YAML = require('yamljs');
+
+const program = require('commander');
+const Client = require('node-rest-client').Client;
+const config = require('./config'); /* Replace this with your own config file. */
+const _ = require('lodash');
+
+let client = new Client();
+
+program.description("Add Hardware");
+program.option('-f, --filename <filename>', 'Create hardware into the data center');
+program.parse(process.argv);
+
+var url = config.Url + "/dc/addHardware";
+
+var args = {headers: {"Content-Type": "application/json"}, data: {}};
+
+if (program.filename) {
+  args.data = YAML.load(program.filename);
+}
+
+console.log(url);
+console.log(args.data);
+
+client.post(url, args, function (data, response) {
+  // parsed response body as js object
+  console.error(data.toString('utf-8'));
+  if (data.error) {
+    console.error(data.error);
+  }
+  else {
+    console.log("Hardware loaded into the datacenter");
+  }
+});

@@ -1,0 +1,53 @@
+application:
+  name: basicAnnotation
+  resources:
+    network:
+      cccB: 100
+      externalB: 254
+    storage:
+      rawStorageB: 10000
+      secondaryStorageB: 5000
+  services:
+    ingestionB:
+      type: 'service'
+      replicas: 8
+      network: cccB
+      links:
+        - annotationB
+        - streamingB
+    streamingB:
+      type: 'service'
+      replicas: 2
+      network: ccc
+      links:
+        - notificationB
+    notificationB:
+      type: 'service'
+      replicas: 2
+      network: cccB
+    annotationB:
+      type: 'service'
+      replicas: 2
+      network: cccB
+      links:
+        - analyticsB
+      storage: rawStorageB
+    analyticsB:
+      type: 'service'
+      replicas: 5
+      network: cccB
+      links:
+        - deepLearningB
+      storage: secondaryStorageB
+    deepLearningB:
+      type: 'service'
+      replicas: 3
+      network: cccB
+      links:
+        - apiGatewayB
+      storage: secondaryStorageB
+    apiGatewayB:
+      type: 'service'
+      replicas: 1
+      network: externalB
+      storage: secondaryStorageB

@@ -1,0 +1,21 @@
+
+version: '3.3'
+
+services:
+  fleet-web:
+    image: madajaju/fleet-web
+    networks:
+      - carNetwork
+    ports:
+      - "1337:1337"
+  fleet-car:
+    image: madajaju/fleet-car
+    networks:
+      - carNetwork
+    deploy:
+      mode: replicated
+      replicas: 5
+
+networks:
+  carNetwork:
+    external: true

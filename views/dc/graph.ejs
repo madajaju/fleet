@@ -1,0 +1,814 @@
+<html>
+<head>
+  <title>Data Center</title>
+
+  <style>
+    body {
+      color: #d3d3d3;
+      font: 12pt arial;
+      background-color: #000000;
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    #mynetwork {
+      width: 100%;
+      height: 1000px;
+      border: 1px solid #444444;
+      background-color: #222222;
+    }
+  </style>
+  <script type='text/javascript' src="/js/vis.js"></script>
+  <script type='text/javascript' src="/dependencies/sails.io.js"></script>
+</head>
+
+<body>
+<table width="100%" height="1000px">
+  <tr>
+    <td height="90%">
+      <table>
+        <tr>
+          <td>Connected Cars</td>
+          <td><input type="text" id="vehicle-population"/></td>
+          <td>Packet Size</td>
+          <td><input type="text" id="vehicle-packetSize"/></td>
+          <td>Accidents</td>
+          <td><input type="text" id="vehicle-accidents"/></td>
+          <td>
+            <button onclick="updateVehicle();">Update</button>
+          </td>
+        </tr>
+      </table>
+    </td>
+    <td width="220px"></td>
+  </tr>
+  <tr>
+    <td>
+      <div id="mynetwork">
+        <div class="vis-network" tabindex="900"
+             style="position: relative; overflow: hidden; touch-action: pan-y; user-select: none; -webkit-user-drag: none; -webkit-tap-highlight-color: rgba(0, 0, 0, 0); width: 100%; height: 100%;">
+          <canvas width="1000" height="1600"
+                  style="position: relative; touch-action: none; user-select: none; -webkit-user-drag: none; -webkit-tap-highlight-color: rgba(0, 0, 0, 0); width: 100%; height: 1000px;"></canvas>
+        </div>
+      </div>
+    </td>
+    <td valign="top" width="220px">
+      <table id="events" width="210px">
+        <tr>
+          <td colspan="2"><h4>Events</h4></td>
+        </tr>
+      </table>
+
+      <table id="triggers" width="210px">
+        <tr>
+          <td colspan="2"><h4>Policies</h4></td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+  <tr>
+    <td>
+      <table>
+        <tr>
+          <td>Hardware</td>
+          <td id="hardwareMetric">-</td>
+          <td>Resources</td>
+          <td id="resourceMetric">-</td>
+          <td>Instances</td>
+          <td id="instanceMetric">-</td>
+          <td>Services</td>
+          <td id="serviceMetric">-</td>
+          <td>Apps</td>
+          <td id="appMetric">-</td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+
+<a href="/dc/initialize">Reset Simulation</a>
+
+<button onclick="removeHardware('compute');">Remove Compute</button>
+<button onclick="addCompute();">Add Compute</button>
+<button onclick="removeHardware('storage');">Remove Storage</button>
+<button onclick="addStorage();">Add Storage</button>
+<button onclick="changeLayout();">Change Layout</button>
+<button onclick="addApp('Basic');">Basic Annotation</button>
+<button onclick="addApp('Alert');">Alert System</button>
+<button onclick="addApp('External');">External Application</button>
+<button onclick="addApp('Analytics');">Analytics</button>
+<button onclick="addApp('DeepLearning');">Deep Learning</button>
+<button onclick="network.fit();">Zoom All</button>
+
+<script type="text/javascript">
+  function changeLayout() {
+    if (options.layout.hierarchical) {
+      options.layout.hierarchical = false;
+      options.physics = {
+        hierarchicalRepulsion: {
+          centralGravity: 0.0,
+          springLength: 100,
+          springConstant: 0.01,
+          nodeDistance: 200,
+          damping: 0.09
+        }
+      }
+    }
+    else {
+      options.layout = {
+        hierarchical: {
+          enabled: true,
+          sortMethod: 'directed'
+        }
+      };
+    }
+    network.destroy();
+    let container = document.getElementById('mynetwork');
+    nodes.clear();
+    nodes = new vis.DataSet([]);
+    edges.clear();
+    edges = new vis.DataSet([]);
+    let newData = {
+      nodes: nodes,
+      edges: edges
+    };
+    network = new vis.Network(container, newData, options);
+    network.on('selectNode', function (params) {
+      let retval = getAllNodes(params.nodes, null);
+      network.setSelection(retval, {unselectAll: true, highlightEdges: false});
+    });
+    network.on('stabilized', function (params) {
+      network.fit({animation: true});
+    });
+    let onodes = [];
+    for (let id in nodesMap) {
+      onodes.push(nodesMap[id].node);
+    }
+    nodes.update(onodes);
+    drawEdges({force: true});
+  }
+
+  function addApp(app) {
+    io.socket.get('/app/create?mode=json&name=' + app, function (body, response) {
+    });
+  }
+
+  function addCompute() {
+    io.socket.get('/hardware/add?mode=json&type=compute&name=Compute', function (body, response) {
+    });
+  }
+
+  function removeHardware(type) {
+    // Randomly find a compute node.
+    var items = nodes.get({
+      filter: function (item) {
+        return item.group === type;
+      }
+    });
+
+    let cid = items[0].id;
+    if (cid) {
+      // Focus on it. Select it.
+      network.focus(cid);
+      let retval = getAllNodes([cid], null);
+      console.log(retval);
+      try {
+        network.setSelection(retval);
+      }
+      catch (e) {
+        console.error("Remove found problem:", e);
+      }
+      network.fit({nodes: retval.nodes, animation: true});
+
+      // Then Remove it.
+      let rid = cid.replace('h', '');
+      setTimeout(function () {
+        // network.setSelection(retval, {unselectAll: true, highlightEdges: false});
+        io.socket.get('/hardware/remove?mode=json&id=' + rid, function (body, response) {
+          network.fit({animation: true});
+          setTimeout(function () {
+            network.unselectAll();
+          }, 3000);
+        });
+      }, 3000);
+    }
+  }
+
+  function addStorage() {
+    io.socket.get('/hardware/add?mode=json&type=storage&name=Store', function (body, response) {
+    });
+  }
+
+  function updateVehicle() {
+    let population = document.getElementById('vehicle-population');
+    let packetSize = document.getElementById('vehicle-packetSize');
+    let accidents = document.getElementById('vehicle-accidents');
+    let url = '/vehicle/update?mode=json';
+    url += "&population=" + population.value;
+    url += "&packetSize=" + packetSize.value;
+    url += "&accidents=" + accidents.value;
+    io.socket.get(url, function (body, response) {
+    });
+  }
+
+  function getAllNodes(nodes, direction) {
+    if (!direction) {
+      let retval = {nodes: nodes, edges: []};
+      let selection = getAllNodes(nodes, 'to');
+      retval.nodes = retval.nodes.concat(selection.nodes);
+      retval.edges = retval.edges.concat(selection.edges);
+
+      selection = getAllNodes(nodes, 'from');
+      retval.nodes = retval.nodes.concat(selection.nodes);
+      retval.edges = retval.edges.concat(selection.edges);
+      return retval;
+    }
+    else {
+      let retval = {nodes: nodes, edges: []};
+      for (let i = 0; i < nodes.length; i++) {
+        if (nodesMap.hasOwnProperty(nodes[i])) {
+          let nnodes = nodesMap[nodes[i]][direction];
+          let selection = getAllNodes(nnodes, direction);
+          retval.nodes = retval.nodes.concat(selection.nodes);
+          retval.edges = retval.edges.concat(selection.edges);
+          for (let j = 0; j < nnodes.length; j++) {
+            if (direction === 'to') {
+              retval.edges.push(nodes[i] + '-' + nnodes[j]);
+            }
+            else {
+              retval.edges.push(nnodes[j] + '-' + nodes[i]);
+            }
+          }
+        }
+      }
+      return retval;
+    }
+  }
+
+  function addEvent(event) {
+    let table = document.getElementById('events');
+
+    // try and find the row first
+    let row = document.getElementById('events-' + event.id);
+    let cell1;
+    let cell2;
+    if (!row) {
+      row = table.insertRow(1);
+      row.id = "events-" + event.id;
+      cell1 = row.insertCell(0);
+      cell1.width = "100px";
+      cell2 = row.insertCell(1);
+      cell2.width = "100px";
+    }
+    else {
+      cell1 = row.cells[0];
+      cell2 = row.cells[1];
+    }
+    cell1.innerHTML = event.name;
+    cell2.innerHTML = event.value;
+    cell2.bgColor = '#000055';
+    setTimeout(function () {
+      cell2.bgColor = 'black';
+    }, 1000);
+    let eventsT = document.getElementsByClassName('Tevents-' + event.id);
+    for (let i = 0; i < eventsT.length; i++) {
+      eventsT[i].bgColor = '#000055';
+      eventsT[i].innerHTML = event.value;
+      setTimeout(function () {
+        eventsT[i].bgColor = 'black';
+        eventsT[i].innerHTML = event.name;
+      }, 1000);
+      // Set timer to change back in 1 second.
+    }
+    let condT = document.getElementsByClassName('Tcond-' + event.id);
+    for (let i = 0; i < condT.length; i++) {
+      let prevColor = condT[i].bgColor;
+      condT[i].innerHTML = event.value;
+    }
+  }
+
+  function drawTriggers() {
+    let table = document.getElementById('triggers');
+    for (let event in triggerMap) {
+      let total = 0
+      let fired = 0;
+      let eventID = 0;
+      let row = document.getElementById('trigger-' + event);
+      for (let name in triggerMap[event]) {
+        let trigger = triggerMap[event][name];
+        eventID = trigger.event.id;
+        if (trigger.fired) {
+          fired++;
+        }
+        total++;
+      }
+      if (!row) {
+        row = table.insertRow(1);
+        row.id = 'trigger-' + event;
+        let cell1 = row.insertCell(0);
+        cell1.width = "100px";
+        let cell2 = row.insertCell(1);
+        cell2.width = "100px";
+        cell1.innerHTML = event;
+        cell1.className = 'Tevents-' + eventID;
+        cell2.innerHTML = fired + '/' + total;
+        cell2.id = 'triggerValue-' + event;
+      }
+    }
+  }
+
+  function addTrigger(trigger) {
+    if (!triggerMap.hasOwnProperty(trigger.event.name)) {
+      triggerMap[trigger.event.name] = {};
+    }
+    triggerMap[trigger.event.name][trigger.name] = trigger;
+  }
+
+  function triggered(trigger) {
+    let row = document.getElementById('trigger-' + trigger.event.name);
+    let cell = document.getElementById('triggerValue-' + trigger.event.name);
+    row.bgColor = "darkgreen";
+    cell.innerHTML = trigger.condition.replace('events.value', trigger.event.value);
+    setTimeout(function () {
+      if (trigger.fired) {
+        cell.bgColor = '#000088';
+      }
+      else {
+        cell.bgColor = 'black';
+      }
+    }, 3000);
+  }
+
+  function addNode(lnodes) {
+    let mnodes = [];
+    for (let i = 0; i < lnodes.length; i++) {
+      let node = lnodes[i];
+      if (node.group === 'Instance') {
+        node.level = (i % 3) + 3;
+      }
+      else if (node.group === 'rcompute') {
+        node.level = (i % 3) + 8;
+      }
+      if (!nodesMap.hasOwnProperty(node.id)) {
+        nodesMap[node.id] = {node: node, to: [], from: []};
+      }
+      else {
+        nodesMap[node.id].node = node;
+      }
+      mnodes.push(node);
+    }
+    nodes.update(mnodes);
+  }
+
+  function removeNode(id) {
+    if (nodesMap.hasOwnProperty(id)) {
+      delete nodesMap[id];
+      // Need to delete edges associated
+    }
+    nodes.remove(id);
+  }
+
+  function addEdge(edge) {
+    let id = edge.from + '-' + edge.to;
+    edge.id = id;
+    if (!edgesMap.hasOwnProperty(id)) {
+      edge.updated = true;
+      edge.value = 1;
+      edgesMap[id] = edge;
+    }
+    else {
+      edgesMap[id].updated = true;
+      edgesMap[id].value++;
+    }
+    if (!nodesMap.hasOwnProperty(edge.from)) {
+      nodesMap[edge.from] = {from: [], to: []};
+    }
+    nodesMap[edge.from].to.push(edge.to);
+    if (!nodesMap.hasOwnProperty(edge.to)) {
+      nodesMap[edge.to] = {from: [], to: []};
+    }
+    nodesMap[edge.to].from.push(edge.from);
+  }
+
+  function removeEdge(from, to) {
+    let id = edge.from + '-' + edge.to;
+    if (edgesMap.hasOwnProperty(id)) {
+      delete edgesMap[id];
+    }
+  }
+
+  function drawEdges(opts) {
+    let items = [];
+    if (!opts) {
+      opts = {force: false};
+    }
+    for (let id in edgesMap) {
+      if (opts.force || edgesMap[id].updated) {
+        let edge = edgesMap[id];
+        edge.width = edge.value;
+        edge.color = {color: 'gray', highlight: 'blue'};
+        edge.highlight = "blue";
+        delete edge.value;
+        delete edge.updated;
+        items.push(edge);
+        edgesMap[id].updated = false;
+      }
+    }
+    edges.update(items);
+    // network.fit();
+  }
+
+
+  function getMetrics() {
+    io.socket.get('/dc/metrics?mode=json', function (body, response) {
+      let metric = document.getElementById('hardwareMetric');
+      let header = "";
+      let content = "";
+      for (let type in body.hardware) {
+        let hw = body.hardware[type];
+        header += '<td>' + type + '</td>';
+        content += '<td>' + hw.total + "(" + Math.round(100 - (100 * hw.available / hw.capacity)) + "%)</td>";
+      }
+      metric.innerHTML = '<table><tr>' + header + '</tr><tr>' + content + '</tr></table>';
+
+      // Resource Metrics
+      metric = document.getElementById('resourceMetric');
+      header = "";
+      content = "";
+      for (let type in body.resources) {
+        let re = body.resources[type];
+        header += '<td>' + type + '</td>';
+        content += '<td>' + re.total + "(" + Math.round(100 - (100 * re.available / re.capacity)) + "%)</td>";
+      }
+      metric.innerHTML = '<table><tr>' + header + '</tr><tr>' + content + '</tr></table>';
+
+      metric = document.getElementById('appMetric');
+      metric.innerHTML = body.apps;
+
+      metric = document.getElementById('instanceMetric');
+      metric.innerHTML = body.instances;
+
+      metric = document.getElementById('serviceMetric');
+      metric.innerHTML = body.services;
+    });
+  }
+
+  let showInstances = true;
+  let triggerMap = {};
+  let edgesMap = {};
+  let nodesMap = {};
+  let nodes = new vis.DataSet([]);
+  let edges = new vis.DataSet([]);
+  // create a network
+  let container = document.getElementById('mynetwork');
+  let data = {
+    nodes: nodes,
+    edges: edges
+  };
+  let options = {
+    // layout: {
+    //   hierarchical: {
+    //     enabled: true,
+    //     sortMethod: 'directed'
+    //   }
+    // },
+    nodes: {
+      shape: 'dot',
+      size: 20,
+      font: {
+        size: 15,
+        color: '#ffffff'
+      },
+      borderWidth: 2,
+      level: 15
+    },
+    groups: {
+      App: {
+        color: {background: '#aa6622', border: '#aa6622'},
+        shape: 'triangle',
+        level: 1,
+      },
+      Service: {
+        color: {background: '#ff8844', border: '#ff8844'},
+        shape: 'diamond',
+        level: 2,
+      },
+      Instance: {
+        shape: 'diamond',
+        color: {background: '#ffaa88', border: '#ffaa88'},
+        // level: 5,
+      },
+      storage: {
+        shape: 'hexagon',
+        color: {background: '#0088aa', border: '#0088aa'},
+        level: 14,
+      },
+      rstorage: {
+        shape: 'hexagon',
+        color: {background: '#00cc66', border: '#00cc66'},
+        level: 11,
+      },
+      compute: {
+        shape: 'square',
+        color: {background: '#006688', border: '#006688'},
+        level: 13,
+      },
+      rcompute: {
+        shape: 'square',
+        color: {background: '#00ffaa', border: '#00ffaa'},
+        // level: 8
+      },
+      network: {
+        shape: 'star',
+        color: {background: '#004466', border: '#004466'},
+        level: 15,
+      },
+      rnetwork: {
+        shape: 'star',
+        color: {background: '#00aa44', border: '#00aa44'},
+        level: 12
+      }
+    }
+  };
+  let network = new vis.Network(container, data, options);
+  network.on('stabilized', function (params) {
+    network.fit({animation: true});
+  });
+  network.on('selectNode', function (params) {
+    let retval = getAllNodes(params.nodes, null);
+    network.setSelection(retval, {unselectAll: true, highlightEdges: false});
+  });
+
+  //////////////////////////////////////////////////////
+  // VEHICLE
+  io.socket.get('/vehicle/list?mode=json', function (body, response) {
+    if (body.length) {
+      let population = document.getElementById('vehicle-population');
+      population.value = body[0].population;
+      let packetSize = document.getElementById('vehicle-packetSize');
+      packetSize.value = body[0].packetSize;
+      let acc = document.getElementById('vehicle-accidents');
+      acc.value = body[0].accidents;
+    }
+  });
+  io.socket.on('vehicle', function (obj) {
+    let population = document.getElementById('vehicle-population');
+    population.innerHTML = obj.population;
+    let packetSize = document.getElementById('vehicle-packetSize');
+    packetSize.innerHTML = obj.packetSize;
+    let acc = document.getElementById('vehicle-accidents');
+    acc.innerHTML = obj.accidents;
+  });
+  getMetrics();
+
+  //////////////////////////////////////////////////////////
+  // EVDNTS
+  io.socket.get('/events/list?mode=json', function (body, response) {
+    for (let i = 0; i < body.length; i++) {
+      let obj = body[i];
+      addEvent(obj);
+    }
+  });
+  io.socket.on('events', function (obj) {
+    addEvent(obj);
+  });
+  //////////////////////////////////////////////////////////
+  // TRIGGERS
+  io.socket.get('/trigger/list?mode=json', function (body, response) {
+    for (let i = 0; i < body.length; i++) {
+      let obj = body[i];
+      addTrigger(obj);
+    }
+    drawTriggers();
+  });
+  io.socket.on('trigger', function (obj) {
+    addTrigger(obj);
+    drawTriggers();
+  });
+  io.socket.on('triggered', function (obj) {
+    triggered(obj);
+  });
+  getMetrics();
+  ///////////////////////////////////////////////
+  // HARDWARE
+  function getHardware()
+  {
+    io.socket.get('/hardware/list?mode=json', function (body, response) {
+      let items = [];
+      for (let i = 0; i < body.length; i++) {
+        let hw = body[i];
+        items.push({
+          id: 'h' + hw.id,
+          label: hw.name,
+          group: hw.type,
+          title: hw.name + ' (' + hw.available + "/" + hw.capacity + ')'
+        });
+      }
+      addNode(items);
+    });
+    io.socket.on('hardware', function (hw) {
+      item = {
+        id: 'h' + hw.id,
+        label: hw.name,
+        group: hw.type,
+        title: hw.name + ' (' + hw.available + "/" + hw.capacity + ')'
+      };
+      addNode([item]);
+      getMetrics();
+    });
+  }
+  getHardware();
+
+  io.socket.on('hardware-destroy', function (body) {
+    for (let i = 0; i < body.length; i++) {
+      delete nodesMap['h' + body[i].id]
+      removeNode('h' + body[i].id);
+    }
+    getMetrics();
+  });
+
+  ///////////////////////////////////////////////
+  // RESOURCES
+  io.socket.get('/resource/list?mode=json', function (body, response) {
+    let items = [];
+    let es = [];
+    for (let i = 0; i < body.length; i++) {
+      let obj = body[i];
+      items.push({
+        id: 'r' + obj.id,
+        label: obj.name,
+        group: 'r' + obj.type,
+        title: obj.name + ' (' + obj.available + "/" + obj.capacity + ')'
+      });
+      if (obj.hardware) {
+        addEdge({to: 'h' + obj.hardware.id, from: 'r' + obj.id});
+      }
+    }
+    addNode(items);
+    drawEdges();
+  });
+  io.socket.on('resource', function (obj) {
+    let item = {
+      id: 'r' + obj.id,
+      label: obj.name,
+      group: 'r' + obj.type,
+      title: obj.name + ' (' + obj.available + "/" + obj.capacity + ')'
+    };
+    addNode([item]);
+    addEdge({to: 'h' + obj.hardware.id, from: 'r' + obj.id});
+    drawEdges();
+    getMetrics();
+  });
+  io.socket.on('resource-move', function (obj) {
+    // Select the hw and the resource.
+    let rid = 'r' + obj.resource.id;
+    let hid = 'h' + obj.hardware.id;
+    let snodes = network.getSelectedNodes();
+    snodes.push(rid);
+    snodes.push(hid);
+    network.selectNodes(snodes);
+
+    // Add an edge between them.
+    addEdge({to: hid, from: rid});
+    drawEdges();
+    getMetrics();
+  });
+  io.socket.on('resource-destroy', function (body) {
+    for (let i = 0; i < body.length; i++) {
+      removeNode('r' + body[i].id);
+    }
+    getMetrics();
+  });
+  ///////////////////////////////////////////////
+  // SERVICES
+  io.socket.get('/service/list?mode=json', function (body, response) {
+    let items = [];
+    let es = [];
+
+    for (let i = 0; i < body.length; i++) {
+      let obj = body[i];
+      let item = {
+        id: 's' + obj.id,
+        label: obj.name,
+        group: 'Service',
+        size: obj.instances.length + 15,
+        title: obj.name + ' (' + obj.instances.length + ')'
+      };
+      items.push(item);
+      for (let j = 0; j < obj.apps.length; j++) {
+        let app = obj.apps[j];
+        addEdge({to: 's' + obj.id, from: 'a' + app.id, length: 10});
+      }
+      for (let j = 0; j < obj.links.length; j++) {
+        let link = obj.links[j];
+        addEdge({from: 's' + obj.id, to: 's' + link.id});
+      }
+    }
+    addNode(items);
+    drawEdges();
+  });
+  io.socket.on('service', function (obj) {
+    let item = {
+      id: 's' + obj.id,
+      label: obj.name,
+      group: 'Service',
+      size: obj.instances.length + 15,
+      title: obj.name + ' (' + obj.instances.length + ')'
+    };
+    addNode([item]);
+    for (let j = 0; j < obj.apps.length; j++) {
+      let app = obj.apps[j];
+      addEdge({to: 's' + obj.id, from: 'a' + app.id});
+    }
+    for (let j = 0; j < obj.links.length; j++) {
+      let link = obj.links[j];
+      addEdge({from: 's' + obj.id, to: 's' + link.id});
+    }
+    drawEdges();
+    getMetrics();
+  });
+  ///////////////////////////////////////////////
+  // APPS
+  io.socket.get('/app/list?mode=json', function (body, response) {
+    let items = [];
+    for (let i = 0; i < body.length; i++) {
+      let obj = body[i];
+      let item = {id: 'a' + obj.id, label: obj.name, group: 'App', title: obj.name + '(' + obj.services.length + ')'};
+      items.push(item);
+    }
+    addNode(items);
+  });
+  io.socket.on('app', function (obj) {
+    let item = null;
+    if (obj.services) {
+      item = {id: 'a' + obj.id, label: obj.name, group: 'App', title: obj.name + '(' + obj.services.length + ')'};
+    }
+    else {
+      item = {id: 'a' + obj.id, label: obj.name, group: 'App', title: obj.name};
+    }
+    addNode([item]);
+    getMetrics();
+  });
+  ///////////////////////////////////////////////
+  // INSTANCES
+  io.socket.get('/instance/list?mode=json', function (body, response) {
+    let items = [];
+    for (let i = 0; i < body.length; i++) {
+      let obj = body[i];
+      if (showInstances) {
+        let item = {id: 'i' + obj.id, label: obj.id, group: 'Instance', title: obj.name};
+        items.push(item);
+        addEdge({from: 's' + obj.service.id, to: 'i' + obj.id, length: 1});
+        for (let j = 0; j < obj.resources.length; j++) {
+          let resource = obj.resources[j];
+          addEdge({from: 'i' + obj.id, to: 'r' + resource.id, length: 30});
+        }
+      }
+      else {
+        for (let j = 0; j < obj.resources.length; j++) {
+          let resource = obj.resources[j];
+          addEdge({from: 's' + obj.service.id, to: 'r' + resource.id});
+        }
+      }
+    }
+    addNode(items);
+    drawEdges();
+  });
+  io.socket.on('instance', function (body) {
+    let items = [];
+    for (let i = 0; i < body.length; i++) {
+      let obj = body[i];
+      if (showInstances) {
+        let item = {id: 'i' + obj.id, label: obj.id, group: 'Instance', title: obj.name};
+        items.push(item);
+        addEdge({from: 's' + obj.service.id, to: 'i' + obj.id, length: 1});
+        for (let j = 0; j < obj.resources.length; j++) {
+          let resource = obj.resources[j];
+          addEdge({from: 'i' + obj.id, to: 'r' + resource.id, length: 30});
+        }
+      }
+      else {
+        for (let j = 0; j < obj.resources.length; j++) {
+          let resource = obj.resources[j];
+          addEdge({from: 's' + obj.service.id, to: 'r' + resource.id});
+        }
+      }
+    }
+    addNode(items);
+    drawEdges();
+  })
+  ;
+  io.socket.on('instance-destroy', function (body) {
+    for (let i = 0; i < body.length; i++) {
+      removeNode('i' + body[i].id);
+    }
+    getMetrics();
+  });
+
+  network.fit({animation: true});
+
+</script>
+
+</body>
+</html>

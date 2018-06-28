@@ -1,0 +1,32 @@
+./fleet-dc-addhardware --filename ../assets/hardware.yaml
+./fleet-dc-addapp --filename ../assets/app.yaml
+./fleet-dc-addapp --filename ../assets/app2.yaml
+./fleet-events-add --name accident --amount 100
+./fleet-trigger-add --name accident --events accident --condition "events.value>100;" --action "sails.helpers.incService('streaming',10);sails.helpers.incService('notificationGateway',5)"
+./fleet-trigger-add --name accident1 --events accident --condition "events.value>200;" --action "sails.helpers.incService('streaming',10);sails.helpers.incService('notificationGateway',5)"
+./fleet-trigger-add --name accident2 --events accident --condition "events.value>300;" --action "sails.helpers.incService('streaming',10);sails.helpers.incService('notificationGateway',5)"
+./fleet-trigger-add --name accident3 --events accident --condition "events.value<280;" --action "sails.helpers.decService('streaming',10);sails.helpers.decService('notificationGateway',5)"
+./fleet-trigger-add --name accident4 --events accident --condition "events.value<180;" --action "sails.helpers.decService('streaming',10);sails.helpers.decService('notificationGateway',5)"
+./fleet-trigger-add --name accident4 --events accident --condition "events.value<80;" --action "sails.helpers.decService('streaming',10);sails.helpers.decService('notificationGateway',5)"
+./fleet-events-add --name ingestion --amount 1000
+./fleet-trigger-add --name ingestion1 --events ingestion --condition "events.value>1000;" --action "sails.helpers.incService('ingestion',5)"
+./fleet-trigger-add --name ingestion2 --events ingestion --condition "events.value>2000;" --action "sails.helpers.incService('ingestion',10)"
+./fleet-trigger-add --name ingestion3 --events ingestion --condition "events.value>3000;" --action "sails.helpers.incService('ingestion',10)"
+./fleet-trigger-add --name ingestion4 --events ingestion --condition "events.value>3000;" --action "sails.helpers.incService('ingestion',10)"
+./fleet-trigger-add --name ingestion5 --events ingestion --condition "events.value>4000;" --action "sails.helpers.incService('ingestion',10)"
+./fleet-trigger-add --name ingestion6 --events ingestion --condition "events.value<3900;" --action "sails.helpers.decService('ingestion',10)"
+./fleet-trigger-add --name ingestion7 --events ingestion --condition "events.value<2900;" --action "sails.helpers.decService('ingestion',10)"
+./fleet-trigger-add --name ingestion8 --events ingestion --condition "events.value<1900;" --action "sails.helpers.decService('ingestion',10)"
+./fleet-trigger-add --name ingestion9 --events ingestion --condition "events.value<900;" --action "sails.helpers.decService('ingestion',5)"
+# ./fleet-events-inc --name accident --amount 53
+# sleep 5
+# ./fleet-events-inc --name accident --amount 100
+# sleep 5
+# ./fleet-events-inc --name accident --amount 78
+# sleep 5
+# ./fleet-events-inc --name accident --amount 120
+# sleep 5
+# ./fleet-events-dec --name accident --amount 80
+# ./fleet-events-dec --name accident --amount 40
+# ./fleet-events-dec --name accident --amount 37
+# ./fleet-events-dec --name accident --amount 100

@@ -1,0 +1,184 @@
+<head>
+  <title>Data Center</title>
+
+  <style>
+    body {
+      color: #d3d3d3;
+      font: 12pt arial;
+      background-color: #222222;
+    }
+
+    #mynetwork {
+      width: 800px;
+      height: 800px;
+      border: 1px solid #444444;
+      background-color: #222222;
+    }
+  </style>
+  <script type="text/javascript" src="/js/vis.js"></script>
+  <script type="text/javascript" src="/dependencies/sails.io.js"></script>
+</head>
+
+<body class=" hasGoogleVoiceExt">
+<div id="mynetwork">
+  <div class="vis-network" tabindex="900"
+       style="position: relative; overflow: hidden; touch-action: pan-y; user-select: none; -webkit-user-drag: none; -webkit-tap-highlight-color: rgba(0, 0, 0, 0); width: 100%; height: 100%;">
+    <canvas width="1000" height="1000"
+            style="position: relative; touch-action: none; user-select: none; -webkit-user-drag: none; -webkit-tap-highlight-color: rgba(0, 0, 0, 0); width: 100%; height: 100%;"></canvas>
+  </div>
+</div>
+
+<script type="text/javascript">
+  let nodesArray = [];
+  let nodes = new vis.DataSet(nodesArray);
+  let edgesArray = []
+  let edges = new vis.DataSet(edgesArray);
+  // create a network
+  let container = document.getElementById('mynetwork');
+  let data = {
+    nodes: nodes,
+    edges: edges
+  };
+  let options = {
+    layout: {
+      hierarchical: true
+    },
+    nodes: {
+      shape: 'dot',
+      size: 20,
+      font: {
+        size: 15,
+        color: '#ffffff'
+      },
+      borderWidth: 2
+    },
+    groups: {
+      App: {
+        color: {background: 'yellow', border: 'Orange'},
+        shape: 'circle',
+        level: 1,
+      },
+      Service: {
+        color: {background: 'green', border: 'gray'},
+        shape: 'diamond',
+        level: 2,
+      },
+      Instance: {
+        shape: 'diamond',
+        color: {background: 'lightgreen', border: 'white'},
+        level: 3,
+      },
+      storage: {
+        shape: 'database',
+        color: {background: 'red', border: 'gray'},
+        level: 5,
+      },
+      rstorage: {
+        shape: 'database',
+        color: {background: 'pink', border: 'white'},
+        level: 4,
+      },
+      compute: {
+        shape: 'square',
+        color: {background: 'blue', border: 'gray'},
+        level: 5,
+      },
+      rcompute: {
+        shape: 'square',
+        color: {background: 'lightblue', border: 'white'},
+        level: 4
+      },
+      network: {
+        shape: 'star',
+        color: {background: 'brown', border: 'gray'},
+        level: 5,
+      },
+      rnetwork: {
+        shape: 'star',
+        color: {background: 'tan', border: 'white'},
+        level: 4
+      }
+    }
+  };
+  let network = new vis.Network(container, data, options);
+
+  io.socket.get('/hardware/list?mode=json', function (body, response) {
+    for (let i = 0; i < body.length; i++) {
+      let hw = body[i];
+      let item = {id: 'h' + hw.id, label: hw.name, group: hw.type};
+      nodes.add(item);
+    }
+  });
+  io.socket.on('hardware', function (hw) {
+    let item = {id: hw.id, label: hw.name, group: hw.type};
+    nodes.add(item);
+  });
+
+  io.socket.get('/resource/list?mode=json', function (body, response) {
+    for (let i = 0; i < body.length; i++) {
+      let obj = body[i];
+      let item = {id: 'r' + obj.id, label: obj.name, group: 'r'+obj.type};
+      nodes.add(item);
+      edges.add({from:'h' + obj.hardware.id, to:'r' + obj.id});
+    }
+  });
+  io.socket.on('resource', function (obj) {
+    let item = {id: 'r' + obj.id, label: obj.name, group: 'r'+obj.type};
+    nodes.add(item);
+    edges.add({from:'h' + obj.hardware.id, to:'r' + obj.id});
+  });
+  io.socket.get('/service/list?mode=json', function (body, response) {
+    for (let i = 0; i < body.length; i++) {
+      let obj = body[i];
+      let item = {id: 's' + obj.id, label: obj.name, group: 'Service'};
+      nodes.add(item);
+      for(let j=0; j < obj.apps.length; j++) {
+        let app = obj.apps[j];
+        edges.add({to:'s' + obj.id, from:'a' + app.id});
+      }
+    }
+  });
+  io.socket.on('service', function (obj) {
+      let item = {id: 's' + obj.id, label: obj.name, group: 'Service'};
+      nodes.add(item);
+      for(let j=0; j < obj.apps.length; j++) {
+        let app = obj.apps[j];
+        edges.add({to:'s' + obj.id, from:'a' + app.id});
+      }
+  });
+  io.socket.get('/app/list?mode=json', function (body, response) {
+    for (let i = 0; i < body.length; i++) {
+      let obj = body[i];
+      let item = {id: 'a' + obj.id, label: obj.name, group: 'App'};
+      nodes.add(item);
+    }
+  });
+  io.socket.on('app', function (obj) {
+      let item = {id: 'a' + obj.id, label: obj.name, group: 'App'};
+      nodes.add(item);
+  });
+  io.socket.get('/instance/list?mode=json', function (body, response) {
+    for (let i = 0; i < body.length; i++) {
+      let obj = body[i];
+      let item = {id: 'i' + obj.id, label: obj.name, group: 'Instance'};
+      nodes.add(item);
+      edges.add({to:'s' + obj.service.id, from:'i' + obj.id});
+      for(let j=0; j < obj.resources.length; j++) {
+        let resource = obj.resources[j];
+        edges.add({from:'i' + obj.id, to:'r' + resource.id});
+      }
+    }
+  });
+  io.socket.on('instance', function (obj) {
+      let item = {id: 'i' + obj.id, label: obj.name, group: 'Instance'};
+      nodes.add(item);
+      edges.add({to:'s' + obj.service.id, from:'i' + obj.id});
+      for(let j=0; j < obj.resources.length; j++) {
+        let resource = obj.resources[j];
+        edges.add({from:'i' + obj.id, to:'r' + resource.id});
+      }
+  });
+
+</script>
+
+</body></html>

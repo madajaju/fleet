@@ -1,0 +1,22 @@
+application:
+  name: externalApp
+  resources:
+    network:
+    storage:
+      secondaryStorageE: 5000
+  services:
+    annotationEx:
+      type: 'service'
+      replicas: 2
+      links:
+        - analyticsEx
+    analyticsEx:
+      type: 'service'
+      replicas: 20
+      links:
+        - apiGatewayEx
+      storage: secondaryStorageE
+    apiGatewayEx:
+      type: 'service'
+      replicas: 50
+      storage: secondaryStorageE
