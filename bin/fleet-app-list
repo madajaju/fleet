@@ -21,25 +21,19 @@ _.each(Object.keys(action.inputs), function(key) {
 // END: Dynamic Mapping based on Controller Action
 
 program.parse(process.argv);
-
-var url = config.Url + "/app/list?";
-
-
-/* Get the arguments passed on the command line and put them in a URL.
-if (name) {
-  url += "name=" + name[0];
-}
-if (program.stack) {
-  url += "&stack=" + program.stack;
-}
-*/
-
+var url = config.Url + "/app/list?mode=json";
 client.get(url, function (data, response) {
   // parsed response body as js object
   if (data.error) {
     console.error("Error:" + data.error);
   }
   else {
-  // Process the data returned.
+      // Process the data returned.
+      console.log("Applications");
+      console.log("=============");
+      for(let id in data) {
+        console.log(data[id].name);
+      }
   }
+
 });

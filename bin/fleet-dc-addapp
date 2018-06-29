@@ -9,7 +9,7 @@ const config = require('./config'); /* Replace this with your own config file. *
 const _ = require('lodash');
 
 let client = new Client();
-program.description("Add Hardware");
+program.description("Add Application to the Data Center");
 program.option('-f, --filename <filename>', 'Create hardware into the data center');
 program.parse(process.argv);
 

@@ -21,8 +21,13 @@ _.each(Object.keys(action.inputs), function(key) {
 // END: Dynamic Mapping based on Controller Action
 
 program.parse(process.argv);
-
 var url = config.Url + "/car/add?";
+url += 'mode=json';
+for(let key in action.inputs) {
+  if( program[key]) {
+    url += '&' + key + '=' + program[key];
+  }
+}
 
 
 /* Get the arguments passed on the command line and put them in a URL.

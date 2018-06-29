@@ -18,28 +18,27 @@ _.each(Object.keys(action.inputs), function(key) {
         program.option('-' + key[0] + ", --" + key + " <" + action.inputs[key].type + ">", action.inputs[key].description);
     }
 });
-// END: Dynamic Mapping based on Controller Action
-
+program.option('-f, --filename <filename>', 'Create hardware into the data center');
 program.parse(process.argv);
 
 var url = config.Url + "/app/create?";
 
+var args = {headers: {"Content-Type": "application/json"}, data: {}};
 
-/* Get the arguments passed on the command line and put them in a URL.
-if (name) {
-  url += "name=" + name[0];
+if (program.filename) {
+  args.data = YAML.load(program.filename);
 }
-if (program.stack) {
-  url += "&stack=" + program.stack;
-}
-*/
 
-client.get(url, function (data, response) {
+console.log(url);
+console.log(args.data);
+
+client.post(url, args, function (data, response) {
   // parsed response body as js object
+  console.error(data.toString('utf-8'));
   if (data.error) {
-    console.error("Error:" + data.error);
+    console.error(data.error);
   }
   else {
-  // Process the data returned.
+    console.log("Hardware loaded into the datacenter");
   }
 });

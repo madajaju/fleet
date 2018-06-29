@@ -1,0 +1,11 @@
+#!/usr/bin/env node
+
+var program =  require('commander');
+
+program
+  .version("0.0.1")
+  .command('add [options]', 'Add a Cloud Resource to the Data Center')
+  .command('list', 'List a cloud resource from the Data Center')
+  .command('remove [options]', 'Remove a cloud resource')
+  .parse(process.argv);
+

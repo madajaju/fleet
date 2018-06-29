@@ -1,0 +1,12 @@
+#!/usr/bin/env node
+
+var program =  require('commander');
+
+program
+  .version("0.0.1")
+  .command('addapp', 'Add and Application to the data center')
+  .command('addhardware [options]', 'Add hardware to the data center')
+  .command('initialize', 'Initialize the data center with hardware and applications')
+  .command('metrics [options]', 'Get DC metrics')
+  .parse(process.argv);
+

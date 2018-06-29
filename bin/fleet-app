@@ -1,0 +1,11 @@
+#!/usr/bin/env node
+
+var program =  require('commander');
+
+program
+  .version("0.0.1")
+  .command('create [options]', 'Create and Application with a YAML file.')
+  .command('list', 'List all of the applications')
+  .command('remove [options]', 'Remove the application specified in options')
+  .parse(process.argv);
+

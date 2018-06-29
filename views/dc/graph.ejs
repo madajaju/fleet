@@ -102,6 +102,105 @@
 <button onclick="network.fit();">Zoom All</button>
 
 <script type="text/javascript">
+  //////////////////////////////////////////////
+  // Initialize
+  let showInstances = true;
+  let triggerMap = {};
+  let edgesMap = {};
+  let nodesMap = {};
+  let nodes;
+  let edges;
+  let network;
+  let options;
+
+  function initGraph() {
+    showInstances = true;
+    triggerMap = {};
+    edgesMap = {};
+    nodesMap = {};
+    nodes = new vis.DataSet([]);
+    edges = new vis.DataSet([]);
+    // create a network
+    let container = document.getElementById('mynetwork');
+    let data = {
+      nodes: nodes,
+      edges: edges
+    };
+    options = {
+      layout: {
+        hierarchical: {
+          enabled: true,
+          sortMethod: 'directed'
+        }
+      },
+      nodes: {
+        shape: 'dot',
+        size: 20,
+        font: {
+          size: 15,
+          color: '#ffffff'
+        },
+        borderWidth: 2,
+        level: 15
+      },
+      groups: {
+        App: {
+          color: {background: '#aa6622', border: '#aa6622'},
+          shape: 'triangle',
+          level: 1,
+        },
+        Service: {
+          color: {background: '#ff8844', border: '#ff8844'},
+          shape: 'diamond',
+          level: 2,
+        },
+        Instance: {
+          shape: 'diamond',
+          color: {background: '#ffaa88', border: '#ffaa88'},
+          // level: 5,
+        },
+        storage: {
+          shape: 'hexagon',
+          color: {background: '#0088aa', border: '#0088aa'},
+          level: 14,
+        },
+        rstorage: {
+          shape: 'hexagon',
+          color: {background: '#00cc66', border: '#00cc66'},
+          level: 11,
+        },
+        compute: {
+          shape: 'square',
+          color: {background: '#006688', border: '#006688'},
+          level: 13,
+        },
+        rcompute: {
+          shape: 'square',
+          color: {background: '#00ffaa', border: '#00ffaa'},
+          // level: 8
+        },
+        network: {
+          shape: 'star',
+          color: {background: '#004466', border: '#004466'},
+          level: 15,
+        },
+        rnetwork: {
+          shape: 'star',
+          color: {background: '#00aa44', border: '#00aa44'},
+          level: 12
+        }
+      }
+    };
+    network = new vis.Network(container, data, options);
+    network.on('stabilized', function (params) {
+      network.fit({animation: true});
+    });
+    network.on('selectNode', function (params) {
+      let retval = getAllNodes(params.nodes, null);
+      network.setSelection(retval, {unselectAll: true, highlightEdges: false});
+    });
+  }
+
   function changeLayout() {
     if (options.layout.hierarchical) {
       options.layout.hierarchical = false;
@@ -143,7 +242,12 @@
     });
     let onodes = [];
     for (let id in nodesMap) {
-      onodes.push(nodesMap[id].node);
+      if (nodesMap[id].node) {
+        onodes.push(nodesMap[id].node);
+      }
+      else {
+        delete nodesMap[id];
+      }
     }
     nodes.update(onodes);
     drawEdges({force: true});
@@ -172,7 +276,6 @@
       // Focus on it. Select it.
       network.focus(cid);
       let retval = getAllNodes([cid], null);
-      console.log(retval);
       try {
         network.setSelection(retval);
       }
@@ -363,8 +466,36 @@
 
   function removeNode(id) {
     if (nodesMap.hasOwnProperty(id)) {
-      delete nodesMap[id];
+      let dnode = nodesMap[id];
       // Need to delete edges associated
+      // Find the id in the edgesMap
+      for (let i = 0; i < dnode.from.length; i++) {
+        let eid = dnode.from[i] + '-' + dnode.node.id;
+        if (edgesMap.hasOwnProperty(eid)) {
+          delete edgesMap[eid];
+        }
+        let newNodes = [];
+        for(let j=0; j < nodesMap[dnode.from[i]].to.length; j++) {
+          if(nodesMap[dnode.from[i]].to[j] != id) {
+            newNodes.push(nodesMap[dnode.from[i]].to[j]);
+          }
+        }
+        nodesMap[dnode.from[i]].to = newNodes;
+      }
+      for (let i = 0; i < dnode.to.length; i++) {
+        let eid = dnode.node.id + '-' + dnode.to[i];
+        if (edgesMap.hasOwnProperty(eid)) {
+          delete edgesMap[eid];
+        }
+        let newNodes = [];
+        for(let j=0; j < nodesMap[dnode.to[i]].from.length; j++) {
+          if(nodesMap[dnode.to[i]].from[j] != id) {
+            newNodes.push(nodesMap[dnode.from[i]].to[j]);
+          }
+        }
+        nodesMap[dnode.to[i]].from = newNodes;
+      }
+      delete nodesMap[id];
     }
     nodes.remove(id);
   }
@@ -454,146 +585,67 @@
     });
   }
 
-  let showInstances = true;
-  let triggerMap = {};
-  let edgesMap = {};
-  let nodesMap = {};
-  let nodes = new vis.DataSet([]);
-  let edges = new vis.DataSet([]);
-  // create a network
-  let container = document.getElementById('mynetwork');
-  let data = {
-    nodes: nodes,
-    edges: edges
-  };
-  let options = {
-    // layout: {
-    //   hierarchical: {
-    //     enabled: true,
-    //     sortMethod: 'directed'
-    //   }
-    // },
-    nodes: {
-      shape: 'dot',
-      size: 20,
-      font: {
-        size: 15,
-        color: '#ffffff'
-      },
-      borderWidth: 2,
-      level: 15
-    },
-    groups: {
-      App: {
-        color: {background: '#aa6622', border: '#aa6622'},
-        shape: 'triangle',
-        level: 1,
-      },
-      Service: {
-        color: {background: '#ff8844', border: '#ff8844'},
-        shape: 'diamond',
-        level: 2,
-      },
-      Instance: {
-        shape: 'diamond',
-        color: {background: '#ffaa88', border: '#ffaa88'},
-        // level: 5,
-      },
-      storage: {
-        shape: 'hexagon',
-        color: {background: '#0088aa', border: '#0088aa'},
-        level: 14,
-      },
-      rstorage: {
-        shape: 'hexagon',
-        color: {background: '#00cc66', border: '#00cc66'},
-        level: 11,
-      },
-      compute: {
-        shape: 'square',
-        color: {background: '#006688', border: '#006688'},
-        level: 13,
-      },
-      rcompute: {
-        shape: 'square',
-        color: {background: '#00ffaa', border: '#00ffaa'},
-        // level: 8
-      },
-      network: {
-        shape: 'star',
-        color: {background: '#004466', border: '#004466'},
-        level: 15,
-      },
-      rnetwork: {
-        shape: 'star',
-        color: {background: '#00aa44', border: '#00aa44'},
-        level: 12
-      }
-    }
-  };
-  let network = new vis.Network(container, data, options);
-  network.on('stabilized', function (params) {
-    network.fit({animation: true});
-  });
-  network.on('selectNode', function (params) {
-    let retval = getAllNodes(params.nodes, null);
-    network.setSelection(retval, {unselectAll: true, highlightEdges: false});
-  });
-
   //////////////////////////////////////////////////////
   // VEHICLE
-  io.socket.get('/vehicle/list?mode=json', function (body, response) {
-    if (body.length) {
+  function getVehicle() {
+    io.socket.get('/vehicle/list?mode=json', function (body, response) {
+      if (body.length) {
+        let population = document.getElementById('vehicle-population');
+        population.value = body[0].population;
+        let packetSize = document.getElementById('vehicle-packetSize');
+        packetSize.value = body[0].packetSize;
+        let acc = document.getElementById('vehicle-accidents');
+        acc.value = body[0].accidents;
+      }
+    });
+    io.socket.on('vehicle', function (obj) {
       let population = document.getElementById('vehicle-population');
-      population.value = body[0].population;
+      population.innerHTML = obj.population;
       let packetSize = document.getElementById('vehicle-packetSize');
-      packetSize.value = body[0].packetSize;
+      packetSize.innerHTML = obj.packetSize;
       let acc = document.getElementById('vehicle-accidents');
-      acc.value = body[0].accidents;
-    }
-  });
-  io.socket.on('vehicle', function (obj) {
-    let population = document.getElementById('vehicle-population');
-    population.innerHTML = obj.population;
-    let packetSize = document.getElementById('vehicle-packetSize');
-    packetSize.innerHTML = obj.packetSize;
-    let acc = document.getElementById('vehicle-accidents');
-    acc.innerHTML = obj.accidents;
-  });
-  getMetrics();
+      acc.innerHTML = obj.accidents;
+    });
+    getMetrics();
+  }
 
   //////////////////////////////////////////////////////////
   // EVDNTS
-  io.socket.get('/events/list?mode=json', function (body, response) {
-    for (let i = 0; i < body.length; i++) {
-      let obj = body[i];
+  function getEvents() {
+    io.socket.get('/events/list?mode=json', function (body, response) {
+      for (let i = 0; i < body.length; i++) {
+        let obj = body[i];
+        addEvent(obj);
+      }
+    });
+    io.socket.on('events', function (obj) {
       addEvent(obj);
-    }
-  });
-  io.socket.on('events', function (obj) {
-    addEvent(obj);
-  });
+    });
+  }
+
   //////////////////////////////////////////////////////////
   // TRIGGERS
-  io.socket.get('/trigger/list?mode=json', function (body, response) {
-    for (let i = 0; i < body.length; i++) {
-      let obj = body[i];
+  function getTriggers() {
+    io.socket.get('/trigger/list?mode=json', function (body, response) {
+      for (let i = 0; i < body.length; i++) {
+        let obj = body[i];
+        addTrigger(obj);
+      }
+      drawTriggers();
+    });
+    io.socket.on('trigger', function (obj) {
       addTrigger(obj);
-    }
-    drawTriggers();
-  });
-  io.socket.on('trigger', function (obj) {
-    addTrigger(obj);
-    drawTriggers();
-  });
-  io.socket.on('triggered', function (obj) {
-    triggered(obj);
-  });
-  getMetrics();
+      drawTriggers();
+    });
+    io.socket.on('triggered', function (obj) {
+      triggered(obj);
+    });
+    getMetrics();
+  }
+
   ///////////////////////////////////////////////
   // HARDWARE
-  function getHardware()
-  {
+  function getHardware() {
     io.socket.get('/hardware/list?mode=json', function (body, response) {
       let items = [];
       for (let i = 0; i < body.length; i++) {
@@ -617,77 +669,101 @@
       addNode([item]);
       getMetrics();
     });
-  }
-  getHardware();
 
-  io.socket.on('hardware-destroy', function (body) {
-    for (let i = 0; i < body.length; i++) {
-      delete nodesMap['h' + body[i].id]
-      removeNode('h' + body[i].id);
-    }
-    getMetrics();
-  });
+    io.socket.on('hardware-destroy', function (body) {
+      for (let i = 0; i < body.length; i++) {
+        // delete nodesMap['h' + body[i].id]
+        removeNode('h' + body[i].id);
+      }
+      getMetrics();
+    });
+  }
 
   ///////////////////////////////////////////////
   // RESOURCES
-  io.socket.get('/resource/list?mode=json', function (body, response) {
-    let items = [];
-    let es = [];
-    for (let i = 0; i < body.length; i++) {
-      let obj = body[i];
-      items.push({
+  function getResources() {
+    io.socket.get('/resource/list?mode=json', function (body, response) {
+      let items = [];
+      let es = [];
+      for (let i = 0; i < body.length; i++) {
+        let obj = body[i];
+        items.push({
+          id: 'r' + obj.id,
+          label: obj.name,
+          group: 'r' + obj.type,
+          title: obj.name + ' (' + obj.available + "/" + obj.capacity + ')'
+        });
+        if (obj.hardware) {
+          addEdge({to: 'h' + obj.hardware.id, from: 'r' + obj.id});
+        }
+      }
+      addNode(items);
+      drawEdges();
+    });
+    io.socket.on('resource', function (obj) {
+      let item = {
         id: 'r' + obj.id,
         label: obj.name,
         group: 'r' + obj.type,
         title: obj.name + ' (' + obj.available + "/" + obj.capacity + ')'
-      });
-      if (obj.hardware) {
-        addEdge({to: 'h' + obj.hardware.id, from: 'r' + obj.id});
-      }
-    }
-    addNode(items);
-    drawEdges();
-  });
-  io.socket.on('resource', function (obj) {
-    let item = {
-      id: 'r' + obj.id,
-      label: obj.name,
-      group: 'r' + obj.type,
-      title: obj.name + ' (' + obj.available + "/" + obj.capacity + ')'
-    };
-    addNode([item]);
-    addEdge({to: 'h' + obj.hardware.id, from: 'r' + obj.id});
-    drawEdges();
-    getMetrics();
-  });
-  io.socket.on('resource-move', function (obj) {
-    // Select the hw and the resource.
-    let rid = 'r' + obj.resource.id;
-    let hid = 'h' + obj.hardware.id;
-    let snodes = network.getSelectedNodes();
-    snodes.push(rid);
-    snodes.push(hid);
-    network.selectNodes(snodes);
+      };
+      addNode([item]);
+      addEdge({to: 'h' + obj.hardware.id, from: 'r' + obj.id});
+      drawEdges();
+      getMetrics();
+    });
+    io.socket.on('resource-move', function (obj) {
+      // Select the hw and the resource.
+      let rid = 'r' + obj.resource.id;
+      let hid = 'h' + obj.hardware.id;
+      let snodes = network.getSelectedNodes();
+      snodes.push(rid);
+      snodes.push(hid);
+      network.selectNodes(snodes);
 
-    // Add an edge between them.
-    addEdge({to: hid, from: rid});
-    drawEdges();
-    getMetrics();
-  });
-  io.socket.on('resource-destroy', function (body) {
-    for (let i = 0; i < body.length; i++) {
-      removeNode('r' + body[i].id);
-    }
-    getMetrics();
-  });
+      // Add an edge between them.
+      addEdge({to: hid, from: rid});
+      drawEdges();
+      getMetrics();
+    });
+    io.socket.on('resource-destroy', function (body) {
+      for (let i = 0; i < body.length; i++) {
+        removeNode('r' + body[i].id);
+      }
+      getMetrics();
+    });
+  }
+
   ///////////////////////////////////////////////
   // SERVICES
-  io.socket.get('/service/list?mode=json', function (body, response) {
-    let items = [];
-    let es = [];
+  function getServices() {
+    io.socket.get('/service/list?mode=json', function (body, response) {
+      let items = [];
+      let es = [];
 
-    for (let i = 0; i < body.length; i++) {
-      let obj = body[i];
+      for (let i = 0; i < body.length; i++) {
+        let obj = body[i];
+        let item = {
+          id: 's' + obj.id,
+          label: obj.name,
+          group: 'Service',
+          size: obj.instances.length + 15,
+          title: obj.name + ' (' + obj.instances.length + ')'
+        };
+        items.push(item);
+        for (let j = 0; j < obj.apps.length; j++) {
+          let app = obj.apps[j];
+          addEdge({to: 's' + obj.id, from: 'a' + app.id, length: 10});
+        }
+        for (let j = 0; j < obj.links.length; j++) {
+          let link = obj.links[j];
+          addEdge({from: 's' + obj.id, to: 's' + link.id});
+        }
+      }
+      addNode(items);
+      drawEdges();
+    });
+    io.socket.on('service', function (obj) {
       let item = {
         id: 's' + obj.id,
         label: obj.name,
@@ -695,118 +771,117 @@
         size: obj.instances.length + 15,
         title: obj.name + ' (' + obj.instances.length + ')'
       };
-      items.push(item);
+      addNode([item]);
       for (let j = 0; j < obj.apps.length; j++) {
         let app = obj.apps[j];
-        addEdge({to: 's' + obj.id, from: 'a' + app.id, length: 10});
+        addEdge({to: 's' + obj.id, from: 'a' + app.id});
       }
       for (let j = 0; j < obj.links.length; j++) {
         let link = obj.links[j];
         addEdge({from: 's' + obj.id, to: 's' + link.id});
       }
-    }
-    addNode(items);
-    drawEdges();
-  });
-  io.socket.on('service', function (obj) {
-    let item = {
-      id: 's' + obj.id,
-      label: obj.name,
-      group: 'Service',
-      size: obj.instances.length + 15,
-      title: obj.name + ' (' + obj.instances.length + ')'
-    };
-    addNode([item]);
-    for (let j = 0; j < obj.apps.length; j++) {
-      let app = obj.apps[j];
-      addEdge({to: 's' + obj.id, from: 'a' + app.id});
-    }
-    for (let j = 0; j < obj.links.length; j++) {
-      let link = obj.links[j];
-      addEdge({from: 's' + obj.id, to: 's' + link.id});
-    }
-    drawEdges();
-    getMetrics();
-  });
+      drawEdges();
+      getMetrics();
+    });
+  }
+
   ///////////////////////////////////////////////
   // APPS
-  io.socket.get('/app/list?mode=json', function (body, response) {
-    let items = [];
-    for (let i = 0; i < body.length; i++) {
-      let obj = body[i];
-      let item = {id: 'a' + obj.id, label: obj.name, group: 'App', title: obj.name + '(' + obj.services.length + ')'};
-      items.push(item);
-    }
-    addNode(items);
-  });
-  io.socket.on('app', function (obj) {
-    let item = null;
-    if (obj.services) {
-      item = {id: 'a' + obj.id, label: obj.name, group: 'App', title: obj.name + '(' + obj.services.length + ')'};
-    }
-    else {
-      item = {id: 'a' + obj.id, label: obj.name, group: 'App', title: obj.name};
-    }
-    addNode([item]);
-    getMetrics();
-  });
+  function getApps() {
+    io.socket.get('/app/list?mode=json', function (body, response) {
+      let items = [];
+      for (let i = 0; i < body.length; i++) {
+        let obj = body[i];
+        let item = {id: 'a' + obj.id, label: obj.name, group: 'App', title: obj.name + '(' + obj.services.length + ')'};
+        items.push(item);
+      }
+      addNode(items);
+    });
+    io.socket.on('app', function (obj) {
+      let item = null;
+      if (obj.services) {
+        item = {id: 'a' + obj.id, label: obj.name, group: 'App', title: obj.name + '(' + obj.services.length + ')'};
+      }
+      else {
+        item = {id: 'a' + obj.id, label: obj.name, group: 'App', title: obj.name};
+      }
+      addNode([item]);
+      getMetrics();
+    });
+  }
+
   ///////////////////////////////////////////////
   // INSTANCES
-  io.socket.get('/instance/list?mode=json', function (body, response) {
-    let items = [];
-    for (let i = 0; i < body.length; i++) {
-      let obj = body[i];
-      if (showInstances) {
-        let item = {id: 'i' + obj.id, label: obj.id, group: 'Instance', title: obj.name};
-        items.push(item);
-        addEdge({from: 's' + obj.service.id, to: 'i' + obj.id, length: 1});
-        for (let j = 0; j < obj.resources.length; j++) {
-          let resource = obj.resources[j];
-          addEdge({from: 'i' + obj.id, to: 'r' + resource.id, length: 30});
+  function getInstances() {
+    io.socket.get('/instance/list?mode=json', function (body, response) {
+      let items = [];
+      for (let i = 0; i < body.length; i++) {
+        let obj = body[i];
+        if (showInstances) {
+          let item = {id: 'i' + obj.id, label: obj.id, group: 'Instance', title: obj.name};
+          items.push(item);
+          addEdge({from: 's' + obj.service.id, to: 'i' + obj.id, length: 1});
+          for (let j = 0; j < obj.resources.length; j++) {
+            let resource = obj.resources[j];
+            addEdge({from: 'i' + obj.id, to: 'r' + resource.id, length: 30});
+          }
+        }
+        else {
+          for (let j = 0; j < obj.resources.length; j++) {
+            let resource = obj.resources[j];
+            addEdge({from: 's' + obj.service.id, to: 'r' + resource.id});
+          }
         }
       }
-      else {
-        for (let j = 0; j < obj.resources.length; j++) {
-          let resource = obj.resources[j];
-          addEdge({from: 's' + obj.service.id, to: 'r' + resource.id});
+      addNode(items);
+      drawEdges();
+    });
+    io.socket.on('instance', function (body) {
+      let items = [];
+      for (let i = 0; i < body.length; i++) {
+        let obj = body[i];
+        if (showInstances) {
+          let item = {id: 'i' + obj.id, label: obj.id, group: 'Instance', title: obj.name};
+          items.push(item);
+          addEdge({from: 's' + obj.service.id, to: 'i' + obj.id, length: 1});
+          for (let j = 0; j < obj.resources.length; j++) {
+            let resource = obj.resources[j];
+            addEdge({from: 'i' + obj.id, to: 'r' + resource.id, length: 30});
+          }
+        }
+        else {
+          for (let j = 0; j < obj.resources.length; j++) {
+            let resource = obj.resources[j];
+            addEdge({from: 's' + obj.service.id, to: 'r' + resource.id});
+          }
         }
       }
-    }
-    addNode(items);
-    drawEdges();
-  });
-  io.socket.on('instance', function (body) {
-    let items = [];
-    for (let i = 0; i < body.length; i++) {
-      let obj = body[i];
-      if (showInstances) {
-        let item = {id: 'i' + obj.id, label: obj.id, group: 'Instance', title: obj.name};
-        items.push(item);
-        addEdge({from: 's' + obj.service.id, to: 'i' + obj.id, length: 1});
-        for (let j = 0; j < obj.resources.length; j++) {
-          let resource = obj.resources[j];
-          addEdge({from: 'i' + obj.id, to: 'r' + resource.id, length: 30});
-        }
+      addNode(items);
+      drawEdges();
+    });
+    io.socket.on('instance-destroy', function (body) {
+      for (let i = 0; i < body.length; i++) {
+        removeNode('i' + body[i].id);
       }
-      else {
-        for (let j = 0; j < obj.resources.length; j++) {
-          let resource = obj.resources[j];
-          addEdge({from: 's' + obj.service.id, to: 'r' + resource.id});
-        }
-      }
-    }
-    addNode(items);
-    drawEdges();
-  })
-  ;
-  io.socket.on('instance-destroy', function (body) {
-    for (let i = 0; i < body.length; i++) {
-      removeNode('i' + body[i].id);
-    }
-    getMetrics();
-  });
+      getMetrics();
+    });
 
-  network.fit({animation: true});
+    network.fit({animation: true});
+  }
+
+  function init() {
+    initGraph();
+    getVehicle();
+    getEvents();
+    getTriggers();
+    getHardware();
+    getResources();
+    getApps();
+    getServices();
+    getInstances();
+  }
+
+  init();
 
 </script>
 

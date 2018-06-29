@@ -1,0 +1,13 @@
+#!/usr/bin/env node
+
+var program =  require('commander');
+
+program
+  .version("0.0.1")
+  .command('add [options]', 'Add a trigger to the data center')
+  .command('disable [options]', 'Disable a trigger')
+  .command('enable [options]', 'Enable a trigger')
+  .command('list', 'List the triggers in the Data Center')
+  .command('remove [options', 'Remove a trigger from the Data Center')
+  .parse(process.argv);
+

@@ -1,0 +1,10 @@
+#!/usr/bin/env node
+
+var program =  require('commander');
+
+program
+  .version("0.0.1")
+  .command('list', 'List the vehicles in the Data Center')
+  .command('update [options]', 'Update the vehicles in the Data Center')
+  .parse(process.argv);
+

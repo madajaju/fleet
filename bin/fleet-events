@@ -1,0 +1,14 @@
+#!/usr/bin/env node
+
+var program =  require('commander');
+
+program
+  .version("0.0.1")
+  .command('add [options]', 'Add events to the Data Center')
+  .command('dec [options]', 'Decrement events')
+  .command('inc [options]', 'Increment events')
+  .command('list [options]', 'List events')
+  .command('remove [options]', 'Remove events')
+  .command('set [options]', 'Set events')
+  .parse(process.argv);
+
