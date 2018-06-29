@@ -32,7 +32,6 @@ module.exports = {
           await Trigger.update({id: trigger.id}, {fired: true});
           trigger = await Trigger.findOne({id: trigger.id}).populateAll();
           sails.sockets.broadcast('fleet', 'triggered', trigger);
-          console.error('Run Action:', actions);
           for (let j = 0; j < actions.length; j++) {
             try {
               await eval(actions[j]);

@@ -1,23 +1,37 @@
 var YAML = require('yamljs');
 
-async function addHardware() {
+async function addClouds() {
+  let cloud = await Cloud.create({name:'FM1',disabled:false}).fetch();
+  await addHardware(cloud);
+  sails.sockets.broadcast('fleet', 'cloud', cloud);
+  cloud = await Cloud.create({name:'SC12',disabled:false}).fetch();
+  await addHardware(cloud);
+  sails.sockets.broadcast('fleet', 'cloud', cloud);
+  cloud = await Cloud.create({name:'JF5',disabled:false}).fetch();
+  await addHardware(cloud);
+  sails.sockets.broadcast('fleet', 'cloud', cloud);
+}
+
+async function addHardware(cloud) {
   for (let i = 0; i < 10; i++) {
     let item = {
-      name: 'Compute' + i,
+      name: cloud.name + '-Compute' + i,
       type: 'compute',
       available: 28,
       capacity: 28,
-      disabled: false
+      disabled: false,
+      cloud: cloud.id
     };
     let hardware = await Hardware.create(item).fetch();
     sails.sockets.broadcast('fleet', 'hardware', hardware);
   }
   for (let i = 0; i < 5; i++) {
     let item = {
-      name: 'Storage' + i,
+      name: cloud.name + '-Storage' + i,
       type: 'storage',
       available: 100000,
       capacity: 100000,
+      cloud: cloud.id,
       disabled: false
     };
     let hardware = await Hardware.create(item).fetch();
@@ -25,10 +39,11 @@ async function addHardware() {
   }
   for (let i = 0; i < 5; i++) {
     let item = {
-      name: 'Network' + i,
+      name: cloud.name + '-Network' + i,
       type: 'network',
       available: 254,
       capacity: 254,
+      cloud: cloud.id,
       disabled: false
     };
     let hardware = await Hardware.create(item).fetch();
@@ -142,7 +157,8 @@ module.exports = {
       await ServiceInstance.destroy({});
       await Trigger.destroy({});
       await Vehicle.destroy({});
-      await addHardware();
+      await Cloud.destroy({});
+      await addClouds();
       await addApplications();
       await addEvents();
       await addTriggers();

@@ -33,6 +33,7 @@ module.exports.routes = {
   'GET /dc/alloc':   { action: 'dc/alloc' },
   'GET /dc/show':   { action: 'dc/show' },
   'GET /dc/graph':   { action: 'dc/graph' },
+  'GET /dc/app':   { action: 'dc/app' },
   'GET /trigger/add':   { action: 'trigger/add' },
   'POST /dc/addApp':   { action: 'dc/addapp' },
 

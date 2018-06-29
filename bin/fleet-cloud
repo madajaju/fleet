@@ -1,0 +1,13 @@
+#!/usr/bin/env node
+
+var program =  require('commander');
+
+program
+  .version("0.0.1")
+  .command('add [options]', 'Add a cloud')
+  .command('disable [options]', 'Disable cloud')
+  .command('enable [options]', 'Enable cloud')
+  .command('list', 'List the clouds')
+  .command('remove [options]', 'Remove the Cloud')
+  .parse(process.argv);
+

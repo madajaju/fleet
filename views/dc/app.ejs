@@ -89,10 +89,6 @@
 
 <a href="/dc/initialize">Reset Simulation</a>
 
-<button onclick="removeHardware('compute');">Remove Compute</button>
-<button onclick="addCompute();">Add Compute</button>
-<button onclick="removeHardware('storage');">Remove Storage</button>
-<button onclick="addStorage();">Add Storage</button>
 <button onclick="changeLayout();">Change Layout</button>
 <button onclick="addApp('Basic');">Basic Annotation</button>
 <button onclick="addApp('Alert');">Alert System</button>
@@ -128,10 +124,10 @@
     };
     options = {
       layout: {
-        hierarchical: {
-          enabled: true,
-          sortMethod: 'directed'
-        }
+      //  hierarchical: {
+      //    enabled: true,
+      //    sortMethod: 'directed'
+      //  }
       },
       nodes: {
         shape: 'dot',
@@ -141,58 +137,23 @@
           color: '#ffffff'
         },
         borderWidth: 2,
-        level: 15
+        // level: 15
       },
       groups: {
         App: {
           color: {background: '#aa6622', border: '#aa6622'},
           shape: 'triangle',
-          level: 1,
+          // level: 1,
         },
         Service: {
           color: {background: '#ff8844', border: '#ff8844'},
           shape: 'diamond',
-          level: 2,
+          // level: 2,
         },
         Instance: {
           shape: 'diamond',
           color: {background: '#ffaa88', border: '#ffaa88'},
           // level: 5,
-        },
-        storage: {
-          shape: 'hexagon',
-          color: {background: '#0088aa', border: '#0088aa'},
-          level: 14,
-        },
-        rstorage: {
-          shape: 'hexagon',
-          color: {background: '#00cc66', border: '#00cc66'},
-          level: 11,
-        },
-        compute: {
-          shape: 'square',
-          color: {background: '#006688', border: '#006688'},
-          level: 13,
-        },
-        rcompute: {
-          shape: 'square',
-          color: {background: '#00ffaa', border: '#00ffaa'},
-          // level: 8
-        },
-        network: {
-          shape: 'star',
-          color: {background: '#004466', border: '#004466'},
-          level: 15,
-        },
-        rnetwork: {
-          shape: 'star',
-          color: {background: '#00aa44', border: '#00aa44'},
-          level: 12
-        },
-        cloud: {
-          shape: 'cloud',
-          color: {background: '#cccc00', border: '#cccc00'},
-          level: 16
         }
       }
     };
@@ -263,50 +224,6 @@
     });
   }
 
-  function addCompute() {
-    io.socket.get('/hardware/add?mode=json&type=compute&name=Compute', function (body, response) {
-    });
-  }
-
-  function removeHardware(type) {
-    // Randomly find a compute node.
-    var items = nodes.get({
-      filter: function (item) {
-        return item.group === type;
-      }
-    });
-
-    let cid = items[0].id;
-    if (cid) {
-      // Focus on it. Select it.
-      network.focus(cid);
-      let retval = getAllNodes([cid], null);
-      try {
-        network.setSelection(retval);
-      }
-      catch (e) {
-        console.error("Remove found problem:", e);
-      }
-      network.fit({nodes: retval.nodes, animation: true});
-
-      // Then Remove it.
-      let rid = cid.replace('h', '');
-      setTimeout(function () {
-        // network.setSelection(retval, {unselectAll: true, highlightEdges: false});
-        io.socket.get('/hardware/remove?mode=json&id=' + rid, function (body, response) {
-          network.fit({animation: true});
-          setTimeout(function () {
-            network.unselectAll();
-          }, 3000);
-        });
-      }, 3000);
-    }
-  }
-
-  function addStorage() {
-    io.socket.get('/hardware/add?mode=json&type=storage&name=Store', function (body, response) {
-    });
-  }
 
   function updateVehicle() {
     let population = document.getElementById('vehicle-population');
@@ -452,12 +369,6 @@
     let mnodes = [];
     for (let i = 0; i < lnodes.length; i++) {
       let node = lnodes[i];
-      if (node.group === 'Instance') {
-        node.level = (i % 3) + 3;
-      }
-      else if (node.group === 'rcompute') {
-        node.level = (i % 3) + 8;
-      }
       if (!nodesMap.hasOwnProperty(node.id)) {
         nodesMap[node.id] = {node: node, to: [], from: []};
       }
@@ -478,7 +389,6 @@
         let eid = dnode.from[i] + '-' + dnode.node.id;
         if (edgesMap.hasOwnProperty(eid)) {
           delete edgesMap[eid];
-          edges.remove(eid);
         }
         let newNodes = [];
         for (let j = 0; j < nodesMap[dnode.from[i]].to.length; j++) {
@@ -496,7 +406,7 @@
         let newNodes = [];
         for (let j = 0; j < nodesMap[dnode.to[i]].from.length; j++) {
           if (nodesMap[dnode.to[i]].from[j] != id) {
-            newNodes.push(nodesMap[dnode.to[i]].from[j]);
+            newNodes.push(nodesMap[dnode.from[i]].to[j]);
           }
         }
         nodesMap[dnode.to[i]].from = newNodes;
@@ -529,10 +439,9 @@
   }
 
   function removeEdge(from, to) {
-    let id = from + '-' + to;
+    let id = edge.from + '-' + edge.to;
     if (edgesMap.hasOwnProperty(id)) {
       delete edgesMap[id];
-      edges.remove(id);
     }
   }
 
@@ -651,140 +560,6 @@
   }
 
   ///////////////////////////////////////////////
-  // HARDWARE
-  function getHardware() {
-    io.socket.get('/hardware/list?mode=json', function (body, response) {
-      let items = [];
-      for (let i = 0; i < body.length; i++) {
-        let hw = body[i];
-        items.push({
-          id: 'h' + hw.id,
-          label: hw.name,
-          group: hw.type,
-          title: hw.name + ' (' + hw.available + "/" + hw.capacity + ')'
-        });
-        if (hw.cloud) {
-          addEdge({to: 'd' + hw.cloud.id, from: 'h' + hw.id});
-        }
-      }
-      addNode(items);
-      drawEdges();
-    });
-    io.socket.on('hardware', function (hw) {
-      item = {
-        id: 'h' + hw.id,
-        label: hw.name,
-        group: hw.type,
-        title: hw.name + ' (' + hw.available + "/" + hw.capacity + ')'
-      };
-      addNode([item]);
-      if (hw.cloud) {
-        addEdge({to: 'd' + hw.cloud.id, from: 'h' + hw.id});
-      }
-      getMetrics();
-      drawEdges();
-    });
-
-    io.socket.on('hardware-destroy', function (body) {
-      for (let i = 0; i < body.length; i++) {
-        removeNode('h' + body[i].id);
-      }
-      getMetrics();
-    });
-  }
-
-  ///////////////////////////////////////////
-  // CLOUD
-  function getCloud() {
-    io.socket.get('/cloud/list?mode=json', function (body, response) {
-      let items = [];
-      for (let i = 0; i < body.length; i++) {
-        let obj = body[i];
-        items.push({
-          id: 'd' + obj.id,
-          label: obj.name,
-          group: 'cloud',
-          title: obj.name
-        });
-      }
-      addNode(items);
-    });
-    io.socket.on('cloud', function (obj) {
-      item = {
-        id: 'd' + obj.id,
-        label: obj.name,
-        group: 'cloud',
-        title: obj.name
-      };
-      addNode([item]);
-      getMetrics();
-    });
-    io.socket.on('cloud-destroy', function (body) {
-      for (let i = 0; i < body.length; i++) {
-        removeNode('d' + body[i].id);
-      }
-      getMetrics();
-    });
-  }
-
-  ///////////////////////////////////////////////
-  // RESOURCES
-  function getResources() {
-    io.socket.get('/resource/list?mode=json', function (body, response) {
-      let items = [];
-      let es = [];
-      for (let i = 0; i < body.length; i++) {
-        let obj = body[i];
-        items.push({
-          id: 'r' + obj.id,
-          label: obj.name,
-          group: 'r' + obj.type,
-          title: obj.name + ' (' + obj.available + "/" + obj.capacity + ')'
-        });
-        if (obj.hardware) {
-          addEdge({to: 'h' + obj.hardware.id, from: 'r' + obj.id});
-        }
-      }
-      addNode(items);
-      drawEdges();
-    });
-    io.socket.on('resource', function (obj) {
-      let item = {
-        id: 'r' + obj.id,
-        label: obj.name,
-        group: 'r' + obj.type,
-        title: obj.name + ' (' + obj.available + "/" + obj.capacity + ')'
-      };
-      addNode([item]);
-      addEdge({to: 'h' + obj.hardware.id, from: 'r' + obj.id});
-      drawEdges();
-      getMetrics();
-    });
-    io.socket.on('resource-move', function (obj) {
-      // Select the hw and the resource.
-      let rid = 'r' + obj.resource.id;
-      let hid = 'h' + obj.to;
-      let oid = 'h' + obj.from;
-      removeEdge(rid, oid);
-      let snodes = network.getSelectedNodes();
-      snodes.push(rid);
-      snodes.push(hid);
-      network.selectNodes(snodes);
-
-      // Add an edge between them.
-      addEdge({to: hid, from: rid});
-      drawEdges();
-      getMetrics();
-    });
-    io.socket.on('resource-destroy', function (body) {
-      for (let i = 0; i < body.length; i++) {
-        removeNode('r' + body[i].id);
-      }
-      getMetrics();
-    });
-  }
-
-  ///////////////////////////////////////////////
   // SERVICES
   function getServices() {
     io.socket.get('/service/list?mode=json', function (body, response) {
@@ -867,21 +642,9 @@
       let items = [];
       for (let i = 0; i < body.length; i++) {
         let obj = body[i];
-        if (showInstances) {
-          let item = {id: 'i' + obj.id, label: obj.id, group: 'Instance', title: obj.name};
-          items.push(item);
-          addEdge({from: 's' + obj.service.id, to: 'i' + obj.id, length: 1});
-          for (let j = 0; j < obj.resources.length; j++) {
-            let resource = obj.resources[j];
-            addEdge({from: 'i' + obj.id, to: 'r' + resource.id, length: 30});
-          }
-        }
-        else {
-          for (let j = 0; j < obj.resources.length; j++) {
-            let resource = obj.resources[j];
-            addEdge({from: 's' + obj.service.id, to: 'r' + resource.id});
-          }
-        }
+        let item = {id: 'i' + obj.id, label: obj.id, group: 'Instance', title: obj.name};
+        items.push(item);
+        addEdge({from: 's' + obj.service.id, to: 'i' + obj.id, length: 1});
       }
       addNode(items);
       drawEdges();
@@ -890,21 +653,9 @@
       let items = [];
       for (let i = 0; i < body.length; i++) {
         let obj = body[i];
-        if (showInstances) {
-          let item = {id: 'i' + obj.id, label: obj.id, group: 'Instance', title: obj.name};
-          items.push(item);
-          addEdge({from: 's' + obj.service.id, to: 'i' + obj.id, length: 1});
-          for (let j = 0; j < obj.resources.length; j++) {
-            let resource = obj.resources[j];
-            addEdge({from: 'i' + obj.id, to: 'r' + resource.id, length: 30});
-          }
-        }
-        else {
-          for (let j = 0; j < obj.resources.length; j++) {
-            let resource = obj.resources[j];
-            addEdge({from: 's' + obj.service.id, to: 'r' + resource.id});
-          }
-        }
+        let item = {id: 'i' + obj.id, label: obj.id, group: 'Instance', title: obj.name};
+        items.push(item);
+        addEdge({from: 's' + obj.service.id, to: 'i' + obj.id, length: 1});
       }
       addNode(items);
       drawEdges();
@@ -924,9 +675,6 @@
     getVehicle();
     getEvents();
     getTriggers();
-    getCloud();
-    getHardware();
-    getResources();
     getApps();
     getServices();
     getInstances();

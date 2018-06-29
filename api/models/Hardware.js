@@ -8,7 +8,6 @@
 module.exports = {
 
   attributes: {
-
     //  ╔═╗╦═╗╦╔╦╗╦╔╦╗╦╦  ╦╔═╗╔═╗
     //  ╠═╝╠╦╝║║║║║ ║ ║╚╗╔╝║╣ ╚═╗
     //  ╩  ╩╚═╩╩ ╩╩ ╩ ╩ ╚╝ ╚═╝╚═╝
@@ -31,7 +30,9 @@ module.exports = {
       collection: 'CloudResource',
       via: 'hardware'
     },
-  },
-
+    cloud: {
+      model: 'Cloud'
+    }
+  }
 };
 

@@ -6,6 +6,7 @@ program
   .version("0.0.1")
   .command('app <command> [options]', 'Application management - add, remove, show, list, etc...')
   .command('car <command> [options]', 'Car management - add, remove, show, list, etc...')
+  .command('cloud <command> [options]', 'Cloud management')
   .command('dc <command> [options]', 'Data Center management')
   .command('events <command> [options]', 'Event Management - add, remove, update etc...')
   .command('hardware <command> [options]', 'Hardware Management - add, remove, update etc...')

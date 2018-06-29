@@ -36,7 +36,6 @@ module.exports = {
     // All done.
     try {
       let data = inputs.application;
-      console.log("App:", data);
       // Create the app first.
       let app = await Application.create({name: data.name}).fetch();
       sails.sockets.broadcast('fleet', 'app', app);
@@ -44,14 +43,12 @@ module.exports = {
       // Now create the resources in the cloud for the application.
       for (let type in data.resources) {
         for (let name in data.resources[type]) {
-          console.error("Add Resource:", type, name);
           await sails.helpers.selectResource.with({type: type, name: name, amount: data.resources[type][name]});
         }
       }
 
       for (let name in data.services) {
         let service = data.services[name];
-        console.error("Add Service:", name);
         // findOrCreate the Service. this will help with re-usability if needed
         let serv = await Service.findOrCreate({name: name}, {name: name});
         await Service.addToCollection(serv.id, 'apps', app.id);
@@ -105,7 +102,6 @@ module.exports = {
             link = await Service.findOne({name:link});
             linkIDs.push(link.id);
           }
-          console.log(linkIDs);
           if(linkIDs.length > 0) {
             await Service.addToCollection(serv.id, 'links', linkIDs);
           }

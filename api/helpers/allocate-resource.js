@@ -65,11 +65,12 @@ module.exports = {
       else {
         name = inputs.type[0] + (Math.round(Math.random() * 1000)).toString();
       }
+      let hardware;
       for (let ri = 0; ri < inputs.replica; ri++) {
         hardware = await Hardware.find({type: inputs.type, disabled:false});
         let iname = name;
         if(!inputs.name && inputs.replica > 1) {
-          iname += "-" + ri;
+          iname += '-' + ri;
         }
         hardware = _.sortBy(hardware, 'available').reverse();
         let hi = 0;
@@ -97,7 +98,7 @@ module.exports = {
       return exits.success(retval);
     }
     catch (e) {
-      console.error('Error');
+      console.error('Allocate Resource error:', inputs);
       console.error(e);
       return exits.error(e);
     }

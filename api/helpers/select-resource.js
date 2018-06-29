@@ -66,24 +66,19 @@ module.exports = {
     }
     else {
       // Find a resource that we can use.
-      console.log("Find a Resource:");
       let resources = await CloudResource.find({type: inputs.type, disabled: false});
       resources = _.sortBy(resources, 'available').reverse();
-      console.log("Checking a Resources:", resources.length);
       let i = 0;
       while (i < resources.length) {
-        console.log("Check:", inputs.amount, "<=", resources[i]);
         if (inputs.amount <= resources[i].available) {
           resource = await CloudResource.update({id: resources[i].id}, {available: resources[i].available - inputs.amount}).fetch();
           resource = resource[0];
-          console.log("Found a Resource to reuse:");
           break;
         }
         i++;
       }
       // Not enough resources need to create a resource
       if (!resource) {
-        console.log("Need to create a resource");
         let amount = inputs.amount;
         if(inputs.type === 'compute') {
           // Containers per VM = 10
@@ -102,7 +97,6 @@ module.exports = {
           return exits.notEnoughResource(inputs);
         }
       }
-      console.log("Done select Resource");
       return exits.success(resource);
     }
   }

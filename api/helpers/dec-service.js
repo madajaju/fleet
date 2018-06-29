@@ -24,6 +24,9 @@ module.exports = {
     },
     notEnoughResource: {
       description: 'Not enough resources available'
+    },
+    serviceNotFound: {
+      description: 'Service not found'
     }
   },
 
@@ -31,28 +34,30 @@ module.exports = {
   fn: async function (inputs, exits) {
     try {
       let serv = inputs.service;
-      if(typeof serv === 'string') {
+      if (typeof serv === 'string') {
         serv = await Service.findOne({name: serv}).populateAll();
-        if(!serv) { return exits.notEnoughResource(serv); }
+        if (!serv) {
+          return exits.serviceNotFound(serv);
+        }
       }
       let ri = [];
       for (let si = 0; si < inputs.amount && si < serv.instances.length; si++) {
-        ri.push(serv.instances[si].id);
-        // need to free up the available on the Resource this was running.
         let inst = await ServiceInstance.findOne({id: serv.instances[si].id}).populateAll();
-        for(let j=0; j < inst.resources.length; j++) {
-          let resource = inst.resources[j];
-          await CloudResource.update({id:resource.id}, {available: resource.available+1});
+        if (inst) {
+          ri.push(serv.instances[si].id);
+          // need to free up the available on the Resource this was running.
+          for (let j = 0; j < inst.resources.length; j++) {
+            let resource = inst.resources[j];
+            await CloudResource.update({id: resource.id}, {available: resource.available + 1});
+          }
         }
       }
-
-      let instances = await ServiceInstance.destroy({id: { in: ri}}).fetch();
+      let instances = await ServiceInstance.destroy({id: {in: ri}}).fetch();
       sails.sockets.broadcast('fleet', 'instance-destroy', instances);
 
       // await Service.removeFromCollection(serv.id, 'instances').members(ri);
       // Load the Service again and broadcast change.
       serv = await Service.findOne(serv.id).populateAll();
-      console.log("Now there are ", serv.instances.length);
       sails.sockets.broadcast('fleet', 'service', serv);
       return exits.success(serv);
     }

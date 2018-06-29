@@ -40,12 +40,13 @@ module.exports = {
         let hardware = await Hardware.find({type: resource.type, disabled: false});
         hardware = _.sortBy(hardware, 'available').reverse();
         while(hi < hardware.length && ri < resources.length) {
+          let resource = resources[ri];
           if (hardware[hi].available > 0) {
-            await Hardware.update({id:hardware[hi].id}, {available: hardware[hi].available -1}).fetch();
+            await Hardware.update({id:hardware[hi].id}, {available: hardware[hi].available-1}).fetch();
             await CloudResource.update({id:resources[ri].id}, {hardware:hardware[hi].id});
             let ress = await CloudResource.findOne(resources[ri].id).populateAll();
             let hw = await Hardware.findOne(hardware[hi].id).populateAll();
-            await sails.sockets.broadcast('fleet', 'resource-move', {resource:ress,hardware:hw});
+            await sails.sockets.broadcast('fleet', 'resource-move', {resource:ress, to:hw.id, from:resource.hardware});
             ri++;
             hi=0;
           }
@@ -54,8 +55,8 @@ module.exports = {
         if(ri < resources.length) {
           return exits.notEnoughHardware(inputs);
         }
-        return exits.success(inputs);
       }
+      return exits.success(inputs);
     }
     catch (e) {
       console.error('Error');
