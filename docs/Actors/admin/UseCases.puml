@@ -1,0 +1,13 @@
+@startuml
+
+left to right direction
+
+:admin: as Actor
+
+rectangle "system.name" {
+    (Use Case) as U1
+}
+
+Actor --> U1
+
+@enduml
