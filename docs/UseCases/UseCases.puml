@@ -2,13 +2,19 @@
 
 left to right direction
 
-:Actor Name: as A1
+:Developer: as Dev
+:Operation Manager: as Ops
 
-rectangle "fleet"  #aaffff {
-:Actor Name: as A1
-
-(Use Case Name) as UCN
+rectangle "fleet"  #cccccc {
+    (Manage Applications) as MA
+    (Manage Clouds) as MC
+    (Manage Hardware) as MH
+    (Manage Vehicles) as MV
 }
 
+Dev --> MA
+Ops --> MC
+Ops --> MH
+Ops --> MV
 
 @enduml

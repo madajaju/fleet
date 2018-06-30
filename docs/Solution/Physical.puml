@@ -1,11 +1,16 @@
 
 @startuml
-package projectName {
-component component1
-component component2
-interface i1
-
+interface Web
+interface CLI
+interface REST
+package fleet #dddddd {
+    component sailsjs
+    component sails.io
 }
-i1 - component1
-component1 --> component2
+
+Web -- sailsjs
+CLI -- sailsjs
+REST -- sailsjs
+Web -- sails.io
+
 @enduml

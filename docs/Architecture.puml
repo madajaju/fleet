@@ -2,17 +2,58 @@
 
 skinparam packageStyle rect
 
-package fleet {
-package "SubSystem1" #aaffff {
+package vehicles #ffff00 {
 }
-package "SubSystem2" #aaffaa {
-}
-package "SubSystem3" #ffaaaa {
-}
+package fleet #cccccc {
+    package "Web" #dd88dd {
+      package ApplicationView {
+      }
+      package CloudView {
+      }
+      package VehicleView {
+      }
+    }
+    package "Application Stack" #ffaa88 {
+      package Application {
+      }
+      package Service {
+      }
+      package ServiceInstance {
+      }
+      Application -> Service
+      Service -> ServiceInstance
+    }
+    package "Cloud Stack" #00ff88 {
+      package ComputeResource {
+      }
+      package NetworkResource {
+      }
+      package StorageResource {
+      }
+      package Events {
+      }
+      package Trigger {
+      }
+      Trigger -> Events
+    }
+    package "Hardware Stack" #00ccff {
+      package Compute {
+      }
+      package Network {
+      }
+      package Storage {
+      }
+    }
 }
 
-SubSystem1 --> SubSystem2
-SubSystem2 --> SubSystem3
+ServiceInstance --> StorageResource
+ServiceInstance --> ComputeResource
+ServiceInstance --> NetworkResource
+
+StorageResource --> Storage
+ComputeResource --> Compute
+NetworkResource --> Network
+vehicles --> fleet
 
 
 @enduml
